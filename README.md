@@ -1,4 +1,4 @@
-# java-aws-xray-opentracing
+# opentracing-java-aws-xray
 Java OpenTracing implementation backed by AWS X-Ray
 
 ## License
