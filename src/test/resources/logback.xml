@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Default log configuration for unit tests -->
+<configuration>
+
+    <!-- When logging in unit tests, just follow the maven output format -->
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder><pattern>[%level] %m%n</pattern></encoder>
+    </appender>
+
+    <logger name="io.opentracing.contrib" level="debug"/>
+
+    <!-- Set this to "debug" or lower to see X-Ray traces -->
+    <logger name="com.amazonaws.xray.emitters.UDPEmitter" level="off" additivity="false">
+        <appender-ref ref="console"/>
+    </logger>
+
+    <root level="info">
+        <appender-ref ref="console"/>
+    </root>
+
+</configuration>
