@@ -258,4 +258,39 @@ class AWSXRaySpanTests extends AWSXRayTestParent {
         final AWSXRaySpan span = mockSpan("test-set-operation-name");
         assertThrows(Exception.class, () -> span.setOperationName("some-other-name"));
     }
+
+    @Test
+    @DisplayName("close the underlying X-Ray Entity on finish")
+    void finish() {
+
+        // Fake scope management here by setting the current trace Entity
+        final AWSXRaySpan span = mockSpan("test-finish");
+        awsxRayRecorder.setTraceEntity(span.getEntity());
+        assertTrue(span.getEntity().isInProgress());
+
+        span.finish();
+
+        // X-Ray automatically unsets the current trace Entity on completion
+        assertFalse(span.getEntity().isInProgress());
+        assertNull(awsxRayRecorder.getTraceEntity());
+    }
+
+    @Test
+    @DisplayName("ignore repeated calls to finish")
+    void finishMultiple() {
+
+        // Fake scope management here by setting the current trace entity
+        final AWSXRaySpan span = mockSpan("test-finish");
+        awsxRayRecorder.setTraceEntity(span.getEntity());
+        assertTrue(span.getEntity().isInProgress());
+
+        // If the second call to finish() proceeded, X-Ray would throw
+        // an exception because the underlying Entity has already completed
+        span.finish();
+        span.finish();
+
+        // X-Ray automatically unsets the current trace Entity on completion
+        assertFalse(span.getEntity().isInProgress());
+        assertNull(awsxRayRecorder.getTraceEntity());
+    }
 }

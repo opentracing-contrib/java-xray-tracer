@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A {@link Span} in the OpenTracing API corresponds more or less directly
@@ -81,9 +82,15 @@ class AWSXRaySpan implements Span {
      */
     private final AWSXRaySpanContext context;
 
+    /**
+     * Keep track of whether finish() has been called yet
+     */
+    private final AtomicBoolean isFinished;
+
     AWSXRaySpan(Entity entity, AWSXRaySpanContext context) {
         this.entity = entity;
         this.context = context;
+        this.isFinished = new AtomicBoolean(false);
     }
 
     /**
@@ -377,7 +384,7 @@ class AWSXRaySpan implements Span {
      *                      seconds since the UNIX
      */
     private void finish(double finishSeconds) {
-        if (!entity.isInProgress()) {
+        if (isFinished.compareAndSet(false, true)) {
             try {
                 entity.setEndTime(finishSeconds);
                 entity.close();
