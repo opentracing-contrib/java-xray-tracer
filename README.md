@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/skylight-ipv/opentracing-java-aws-xray.svg?branch=master)](https://travis-ci.org/skylight-ipv/opentracing-java-aws-xray)
+
 # opentracing-java-aws-xray
 Java OpenTracing implementation backed by AWS X-Ray.
 
