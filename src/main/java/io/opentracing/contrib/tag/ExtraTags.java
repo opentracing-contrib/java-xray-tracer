@@ -1,5 +1,6 @@
 package io.opentracing.contrib.tag;
 
+import io.opentracing.tag.IntTag;
 import io.opentracing.tag.StringTag;
 
 /**
@@ -43,5 +44,5 @@ public final class ExtraTags {
      * HTTP_CONTENT_LENGTH records the number of bytes returned to the client
      * by the server over the course of the request
      */
-    public static final StringTag HTTP_CONTENT_LENGTH = new StringTag("http.content_length");
+    public static final IntTag HTTP_CONTENT_LENGTH = new IntTag("http.content_length");
 }
