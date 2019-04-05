@@ -3,7 +3,7 @@
 # opentracing-java-aws-xray
 Java OpenTracing implementation backed by AWS X-Ray.
 
-**WARNING: this code is currently still alpha-quality and should not be considered ready for production usage.**
+**WARNING: this code is currently in beta: please test thoroughly before deploying to production, and report any issues.**
 
 ## Overview
 
