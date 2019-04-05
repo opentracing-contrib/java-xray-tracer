@@ -11,7 +11,53 @@ The [OpenTracing specification](https://opentracing.io) is a vendor-neutral API 
 tracing. This library provides an implementation which is backed by the [AWS X-Ray Java SDK](https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-java.html),
 and for the most part just provides a thin wrapper around the underlying X-Ray classes.
 
-## Naming conventions
+## Using this library
+
+The code is not yet being deployed to Maven central, so you'll have to build your own version. This should be as simple as:
+
+- cloning this repository locally
+- running `mvn package`
+- including the resulting JAR file in your `/lib` folder (or similar)
+
+## Known limitations
+
+This library does not currently provide a full implementation of the OpenTracing API: the X-Ray classes themselves 
+already provide some of the same features, and in other cases the APIs are incompatible. The following limitations 
+currently apply:
+
+#### References
+
+OpenTracing provides for arbitrary [references between spans](https://opentracing.io/specification/#references-between-spans), 
+including parent-child and follows-from relationships. In practice X-Ray only supports parent-child relationships, and
+each span can have at most one parent. Calls to add references of different types, or multiple parent-child relationships,
+will generally be ignored.
+
+#### Context injection / extraction
+
+This library does not currently implement [injection and extraction of SpanContext](https://opentracing.io/specification/#inject-a-spancontext-into-a-carrier):
+in most cases it is expected that this library will be used in AWS-hosted systems, and calls between AWS services using
+the official SDK will already handle passing trace IDs across.
+
+Support could be added in future if required.
+
+#### Logging
+
+OpenTracing provides methods to add [logs to the trace](https://opentracing.io/specification/#log-structured-data). 
+These methods will work as expected: structured data are stored in X-Ray metadata under a "log" namespace, but this
+approach isn't advised since the resulting JSON format is clunky. A better approach in AWS is to make use of 
+[CloudWatch](https://aws.amazon.com/cloudwatch/).
+
+## AWS compatibility
+
+#### Integrating with AWS systems
+
+Since this library mostly just wraps the standard X-Ray classes, it *should* work seamlessly in code which makes use of
+multiple AWS services: the standard AWS SDK will add the necessary trace headers automatically, and recover them on 
+remote servers (e.g. when invoking lambda functions). However, this hasn't yet been extensively tested, so feedback
+and bug reports are very welcome!
+
+
+#### Naming conventions
 
 The OpenTracing standard and the AWS X-Ray system each use different naming conventions for some of the same concepts 
 (e.g. HTTP response codes). Since the goal of this project is to largely hide the fact that we're using X-Ray under the 
@@ -49,41 +95,6 @@ The following table shows how tag names will be modified to fit the X-Ray format
 | `http.content_length` | `http.response.content_length`  |
 | `foo`                 | `metadata.default.foo`          |
 | `widget.foo`          | `metadata.widget.foo`           |
-
-## Known limitations
-
-This library does not currently provide a full implementation of the OpenTracing API: the X-Ray classes themselves 
-already provide some of the same features, and in other cases the APIs are incompatible. The following limitations 
-currently apply:
-
-#### References
-
-OpenTracing provides for arbitrary [references between spans](https://opentracing.io/specification/#references-between-spans), 
-including parent-child and follows-from relationships. In practice X-Ray only supports parent-child relationships, and
-each span can have at most one parent. Calls to add references of different types, or multiple parent-child relationships,
-will generally be ignored.
-
-#### Context injection / extraction
-
-This library does not currently implement [injection and extraction of SpanContext](https://opentracing.io/specification/#inject-a-spancontext-into-a-carrier):
-in most cases it is expected that this library will be used in AWS-hosted systems, and calls between AWS services using
-the official SDK will already handle passing trace IDs across.
-
-Support could be added in future if required.
-
-#### Logging
-
-OpenTracing provides methods to add [logs to the trace](https://opentracing.io/specification/#log-structured-data). 
-These methods will work as expected: structured data are stored in X-Ray metadata under a "log" namespace, but this
-approach isn't advised since the resulting JSON format is clunky. A better approach in AWS is to make use of 
-[CloudWatch](https://aws.amazon.com/cloudwatch/).
-
-## AWS compatibility
-
-Since this library mostly just wraps the standard X-Ray classes, it *should* work seamlessly in code which makes use of
-multiple AWS services: the standard AWS SDK will add the necessary trace headers automatically, and recover them on 
-remote servers (e.g. when invoking lambda functions). However, this hasn't yet been extensively tested, so feedback
-and bug reports are very welcome!
 
 ## License
 
