@@ -16,8 +16,10 @@ and for the most part just provides a thin wrapper around the underlying X-Ray c
 The code is not yet being deployed to Maven central, so you'll have to build your own version. This should be as simple as:
 
 - cloning this repository locally
-- running `mvn package`
+- running `mvn package` [1]
 - including the resulting JAR file in your `/lib` folder (or similar)
+
+[1] If you don't already have Maven installed, you can use the `mvnw` command (or `mvnw.cmd` for Windows) instead which uses the [Maven wrapper plugin](https://github.com/takari/maven-wrapper) to download and start the correct version of Maven.
 
 ## Known limitations
 
