@@ -1,7 +1,12 @@
 language: java
+
 cache:
   directories:
   - $HOME/.m2
+
 branches:
   only:
   - master
+
+install:
+  - ./mvnw install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
