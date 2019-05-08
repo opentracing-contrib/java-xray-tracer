@@ -134,6 +134,9 @@ class AWSXRaySpan implements Span {
         else if (AWSXRayTags.THROTTLE.getKey().equals(key)) {
             entity.setThrottle(value);
         }
+        else if (AWSXRayTags.IS_SAMPLED.getKey().equals(key) && entity instanceof Segment) {
+            ((Segment) entity).setSampled(value);
+        }
         else {
             setTagAny(key, value);
         }

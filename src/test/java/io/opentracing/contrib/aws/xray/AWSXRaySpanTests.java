@@ -49,6 +49,19 @@ class AWSXRaySpanTests extends AWSXRayTestParent {
     }
 
     @Test
+    @DisplayName("set IS_SAMPLED tag on underlying Entity")
+    void tagSampled() {
+        final AWSXRaySpan span = mockSpan("test-tag-is-sampled");
+        assertTrue(span.getEntity() instanceof Segment);
+
+        span.setTag(AWSXRayTags.IS_SAMPLED.getKey(), false);
+        assertFalse(((Segment) span.getEntity()).isSampled());
+
+        span.setTag(AWSXRayTags.IS_SAMPLED.getKey(), true);
+        assertTrue(((Segment) span.getEntity()).isSampled());
+    }
+
+    @Test
     @DisplayName("set USER tag on underlying Entity")
     void tagUser() {
         final String expectedUser = "test.user@example.com";

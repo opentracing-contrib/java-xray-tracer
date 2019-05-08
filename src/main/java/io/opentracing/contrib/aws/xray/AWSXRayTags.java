@@ -28,6 +28,12 @@ public final class AWSXRayTags {
     public static final BooleanTag THROTTLE = new BooleanTag("throttle");
 
     /**
+     * IS_SAMPLED indicates that the current trace segment should be
+     * subject to sampling by X-Ray.
+     */
+    public static final BooleanTag IS_SAMPLED = new BooleanTag("isSampled");
+
+    /**
      * USER is the identifier for the user who initiated this request,
      * typically a logged-in website user or IAM username.
      *
