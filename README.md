@@ -82,6 +82,7 @@ The following table shows how tag names will be modified to fit the X-Ray format
 | `error`               | sets the `isError()` flag       |
 | `fault`               | sets the `isFault()` flag       |
 | `throttle`            | sets the `isThrottle()` flag    |
+| `isSampled`           | sets the `isSampled()` flag     |
 | `version`             | `service.version`               |
 | `db.instance`         | `sql.url`                       |
 | `db.statement`        | `sql.sanitized_query`           |
