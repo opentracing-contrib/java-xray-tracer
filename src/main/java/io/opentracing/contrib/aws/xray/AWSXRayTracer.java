@@ -1,6 +1,7 @@
 package io.opentracing.contrib.aws.xray;
 
 import com.amazonaws.xray.AWSXRayRecorder;
+import com.amazonaws.xray.contexts.LambdaSegmentContext;
 import com.amazonaws.xray.entities.Entity;
 import com.amazonaws.xray.entities.FacadeSegment;
 import io.opentracing.*;
@@ -240,7 +241,13 @@ public class AWSXRayTracer implements Tracer {
             // Entity, then setting it back once we're done
             xRayRecorder.setTraceEntity(parentEntity);
 
-            final Entity childEntity = xRayRecorder.getTraceEntity() == null ?
+            // Special case when running in AWS Lambda: the Lambda infrastructure
+            // creates a top-level trace Segment to which we do not have access, so
+            // creating another Segment here would be an error. Instead, we need to
+            // forcibly create a Subsegment.
+            final boolean isAwsLambda = xRayRecorder.getSegmentContextResolverChain().resolve() instanceof LambdaSegmentContext;
+
+            final Entity childEntity = (xRayRecorder.getTraceEntity() == null && !isAwsLambda) ?
                     xRayRecorder.beginSegment(operationName) :
                     xRayRecorder.beginSubsegment(operationName);
 
