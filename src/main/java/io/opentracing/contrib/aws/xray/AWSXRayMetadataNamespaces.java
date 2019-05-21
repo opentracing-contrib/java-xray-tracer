@@ -23,7 +23,7 @@ import io.opentracing.Span;
  * conform to the above pattern, then it will be coerced to the above
  * by being placed in the {@link #DEFAULT} namespace. Examples:
  *
- * <table>
+ * <table summary="metadata namespace mappings">
  *     <tr>
  *         <th>Original key</th>
  *         <th>X-Ray key</th>
