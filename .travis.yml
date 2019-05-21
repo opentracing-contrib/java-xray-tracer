@@ -26,3 +26,6 @@ install:
 branches:
   only:
   - master
+
+after_success:
+  - mvn jacoco:report coveralls:report
