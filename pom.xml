@@ -1,16 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
- 
+
   <groupId>io.opentracing.contrib</groupId>
   <artifactId>java-xray-tracer</artifactId>
   <version>1.0.0-SNAPSHOT</version>
+
+  <url>https://github.com/opentracing-contrib/java-xray-tracer</url>
   <description>OpenTracing implementation for AWS X-Ray</description>
+
+  <scm>
+    <url>http://github.com/opentracing-contrib/java-xray-tracer</url>
+    <connection>scm:git:https://github.com/opentracing-contrib/java-xray-tracer.git</connection>
+    <developerConnection>scm:git:https://github.com/opentracing-contrib/java-xray-tracer.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
 
   <issueManagement>
     <system>GitHub</system>
     <url>https://github.com/opentracing-contrib/java-xray-tracer/issues</url>
   </issueManagement>
+
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <id>ashleymercer</id>
+      <name>Ashley Mercer</name>
+      <url>https://github.com/ashleymercer</url>
+    </developer>
+  </developers>
 
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -110,5 +136,5 @@
       </plugin>
     </plugins>
   </build>
- 
+
 </project>
