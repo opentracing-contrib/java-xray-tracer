@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/opentracing-contrib/java-xray-tracer.svg?branch=master)](https://travis-ci.org/opentracing-contrib/java-xray-tracer) [![GitHub](https://img.shields.io/github/license/opentracing-contrib/java-xray-tracer.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Build Status](https://travis-ci.org/opentracing-contrib/java-xray-tracer.svg?branch=master)](https://travis-ci.org/opentracing-contrib/java-xray-tracer) [![Coverage Status](https://coveralls.io/repos/github/opentracing-contrib/java-xray-tracer/badge.svg?branch=master)](https://coveralls.io/github/opentracing-contrib/java-xray-tracer?branch=master) [![GitHub](https://img.shields.io/github/license/opentracing-contrib/java-xray-tracer.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # opentracing-java-aws-xray
 Java OpenTracing implementation backed by AWS X-Ray.
