@@ -13,7 +13,7 @@ and for the most part just provides a thin wrapper around the underlying X-Ray c
 
 ## Using this library
 
-The code is not yet being deployed to Maven central, so you'll have to build your own version. This should be as simple as:
+The code is not yet being deployed to Maven central (we're working on that!), so you'll have to build your own version. This should be as simple as:
 
 - cloning this repository locally
 - running `mvn package` [1]
