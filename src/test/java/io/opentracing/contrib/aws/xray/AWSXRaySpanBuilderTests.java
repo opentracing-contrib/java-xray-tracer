@@ -2,16 +2,19 @@ package io.opentracing.contrib.aws.xray;
 
 import com.amazonaws.xray.AWSXRayRecorder;
 import com.amazonaws.xray.AWSXRayRecorderBuilder;
+import com.amazonaws.xray.emitters.Emitter;
 import com.amazonaws.xray.entities.Entity;
 import com.amazonaws.xray.entities.Segment;
 import io.opentracing.Scope;
 import io.opentracing.Span;
+import io.opentracing.Tracer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
  * @author ashley.mercer@skylightipv.com
@@ -143,6 +146,30 @@ class AWSXRaySpanBuilderTests extends AWSXRayTestParent {
         assertEquals(parentEntity, childEntity.getParent());
 
         childScope.close();
+    }
+
+    /**
+     * Check that explicitly requesting segments be sent back to X-Ray on
+     * {@link Tracer.SpanBuilder#start()} works as expected.
+     *
+     * @see AWSXRayTracer.AWSXRaySpanBuilder#sendOnStart()
+     */
+    @Test
+    @DisplayName("send on start() if requested")
+    void sendOnStart() {
+        final Emitter emitter = mock(Emitter.class);
+        when(emitter.sendSegment(any())).thenReturn(true);
+
+        final AWSXRayRecorder recorder = AWSXRayRecorderBuilder.standard().withEmitter(emitter).build();
+        final AWSXRayTracer tracer = new AWSXRayTracer(recorder);
+
+        final Scope scope = tracer
+                .buildSpan("test-send-on-start")
+                .sendOnStart()
+                .startActive(true);
+
+        verify(emitter).sendSegment(any());
+        scope.close();
     }
 
     @Test

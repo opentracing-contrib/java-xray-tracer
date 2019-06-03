@@ -2,8 +2,7 @@ package io.opentracing.contrib.aws.xray;
 
 import com.amazonaws.xray.AWSXRayRecorder;
 import com.amazonaws.xray.contexts.LambdaSegmentContext;
-import com.amazonaws.xray.entities.Entity;
-import com.amazonaws.xray.entities.FacadeSegment;
+import com.amazonaws.xray.entities.*;
 import io.opentracing.*;
 import io.opentracing.propagation.Format;
 import org.slf4j.Logger;
@@ -43,13 +42,13 @@ public class AWSXRayTracer implements Tracer {
     }
 
     @Override
-    public AWSXRaySpan activeSpan() {
+    public Span activeSpan() {
         return scopeManager.activeSpan();
     }
 
     @Override
-    public SpanBuilder buildSpan(String operationName) {
-        return new AWSXRaySpanBuilder(operationName);
+    public AWSXRaySpanBuilder buildSpan(String operationName) {
+        return new AWSXRaySpanBuilderImpl(operationName);
     }
 
     @Override
@@ -63,9 +62,25 @@ public class AWSXRayTracer implements Tracer {
     }
 
     /**
+     * Additional API for {@link SpanBuilder} which can be used to modify
+     * X-Ray behaviour directly.
+     */
+    public interface AWSXRaySpanBuilder extends SpanBuilder {
+
+        /**
+         * Attempt to send an in-progress span back to X-Ray as soon as
+         * it starts; this can be useful for long-running spans or those
+         * which trigger downstream tasks, since the default behaviour
+         * is to only send trace data to X-Ray once the whole tree of
+         * spans is complete.
+         */
+        AWSXRaySpanBuilder sendOnStart();
+    }
+
+    /**
      * AWS-specific {@link io.opentracing.Tracer.SpanBuilder} implementation
      */
-    private final class AWSXRaySpanBuilder implements SpanBuilder {
+    private final class AWSXRaySpanBuilderImpl implements AWSXRaySpanBuilder {
 
         private final String operationName;
 
@@ -84,11 +99,14 @@ public class AWSXRayTracer implements Tracer {
         private final AtomicReference<Double> startTimestampEpochSeconds;
 
         /**
-         * By default, an implicit reference to the active {@link Span} is
-         * created as the parent of this, if no parent has already been set;
-         * but this can be overridden by calling {@link #ignoreActiveSpan()}
+         * @see SpanBuilder#ignoreActiveSpan()
          */
         private final AtomicReference<Boolean> ignoreActiveSpan;
+
+        /**
+         * @see AWSXRaySpanBuilder#sendOnStart()
+         */
+        private final AtomicReference<Boolean> sendOnStart;
 
         /**
          * Currently only support a single reference to the parent Span (if
@@ -98,7 +116,7 @@ public class AWSXRayTracer implements Tracer {
          */
         private final Map<String, SpanContext> references;
 
-        private AWSXRaySpanBuilder(String operationName) {
+        private AWSXRaySpanBuilderImpl(String operationName) {
             this.operationName = operationName;
 
             this.stringTags = new HashMap<>();
@@ -107,6 +125,7 @@ public class AWSXRayTracer implements Tracer {
 
             this.startTimestampEpochSeconds = new AtomicReference<>();
             this.ignoreActiveSpan = new AtomicReference<>(false);
+            this.sendOnStart = new AtomicReference<>(false);
             this.references = new ConcurrentHashMap<>();
         }
 
@@ -140,6 +159,12 @@ public class AWSXRayTracer implements Tracer {
         @Override
         public SpanBuilder ignoreActiveSpan() {
             ignoreActiveSpan.set(true);
+            return this;
+        }
+
+        @Override
+        public AWSXRaySpanBuilder sendOnStart() {
+            sendOnStart.set(true);
             return this;
         }
 
@@ -271,6 +296,18 @@ public class AWSXRayTracer implements Tracer {
             stringTags.forEach(newSpan::setTag);
             booleanTags.forEach(newSpan::setTag);
             numberTags.forEach(newSpan::setTag);
+
+            // Allow segments to be explicitly sent back to X-Ray at the time
+            // the span is start()-ed - this can be useful so we can see the
+            // in-progress span in X-Ray
+            if (sendOnStart.get()) {
+                if (newSpan.getEntity() instanceof Segment) {
+                    xRayRecorder.sendSegment((Segment) newSpan.getEntity());
+                }
+                else if (newSpan.getEntity() instanceof Subsegment) {
+                    xRayRecorder.sendSubsegment((Subsegment) newSpan.getEntity());
+                }
+            }
 
             return newSpan;
         }

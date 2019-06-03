@@ -1,6 +1,5 @@
 package io.opentracing.contrib.aws.xray;
 
-import com.amazonaws.xray.entities.Segment;
 import io.opentracing.Scope;
 import io.opentracing.SpanContext;
 import io.opentracing.propagation.Format;
