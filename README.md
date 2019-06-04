@@ -68,21 +68,16 @@ hood, and to only expose the OpenTracing API:
 - client code should prefer using the [OpenTracing naming conventions](https://opentracing.io/specification/conventions/) 
   for tag names (however, if you supply the X-Ray-specific names, values will still end up in the right place)
 - this library will silently convert *some* known tag names values to their X-Ray equivalents
-- it will also convert *some* known tag names for boolean values directly to set flags on the underlying X-Ray trace
 - X-Ray traces further subdivide tagged values into separate sub-objects for e.g. HTTP request and response data:
   - where possible, ensure values end up in the correct place on the trace
-  - all other values are stored in the `metadata` section, under a `default` namespace if necessary
+  - all other values are stored in the `metadata` section, under a `default` namespace if not specified
   - see the [X-Ray Segment Documents](https://docs.aws.amazon.com/xray/latest/devguide/xray-api-segmentdocuments.html)
     for further details
 
-The following table shows how tag names will be modified to fit the X-Ray format:
+The following OpenTracing names will be translated to fit the X-Ray names:
 
-| OpenTracing tag name  | X-Ray property name / behaviour |
+| OpenTracing tag name  | X-Ray trace name                |
 |-----------------------|---------------------------------|
-| `error`               | sets the `isError()` flag       |
-| `fault`               | sets the `isFault()` flag       |
-| `throttle`            | sets the `isThrottle()` flag    |
-| `isSampled`           | sets the `isSampled()` flag     |
 | `version`             | `service.version`               |
 | `db.instance`         | `sql.url`                       |
 | `db.statement`        | `sql.sanitized_query`           |
@@ -98,6 +93,19 @@ The following table shows how tag names will be modified to fit the X-Ray format
 | `http.content_length` | `http.response.content_length`  |
 | `foo`                 | `metadata.default.foo`          |
 | `widget.foo`          | `metadata.widget.foo`           |
+
+Additionally, the following special tag names are defined in `AWSXRayTags` and can be used to directly modify the
+behaviour of the underlying X-Ray trace `Entity` (NB some of these only work for `Segment`, i.e. top-level spans):
+
+|                       | Behaviour                       | `Segment` | `Subsegment` |
+|-----------------------|---------------------------------|-----------|--------------|
+| `error`               | sets the `isError()` flag       | Y         | Y            |
+| `fault`               | sets the `isFault()` flag       | Y         | Y            | 
+| `throttle`            | sets the `isThrottle()` flag    | Y         | Y            |
+| `isSampled`           | sets the `isSampled()` flag     | Y         | -            |
+| `user`                | sets the `user` value           | Y         | -            |
+| `origin`              | sets the `origin` value         | Y         | -            |
+| `parentId`            | sets the `parentId` value       | Y         | Y            |
 
 ## License
 

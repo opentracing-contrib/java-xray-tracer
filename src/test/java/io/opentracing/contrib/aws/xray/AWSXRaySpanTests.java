@@ -86,6 +86,17 @@ class AWSXRaySpanTests extends AWSXRayTestParent {
     }
 
     @Test
+    @DisplayName("set PARENT_ID tag on underlying Entity")
+    void tagParentId() {
+        final String expectedParentId = "";
+
+        final AWSXRaySpan span = mockSpan("test-tag-parent-id");
+        span.setTag(AWSXRayTags.PARENT_ID.getKey(), expectedParentId);
+
+        assertEquals(expectedParentId, span.getEntity().getParentId());
+    }
+
+    @Test
     @DisplayName("tag annotations values")
     void tagAnnotations() {
         testSpecialTags("annotations", s -> s.getEntity().getAnnotations());

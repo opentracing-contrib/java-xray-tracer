@@ -115,6 +115,9 @@ class AWSXRaySpan implements Span {
         else if (AWSXRayTags.ORIGIN.getKey().equals(key) && entity instanceof Segment) {
             ((Segment) entity).setOrigin(value);
         }
+        else if (AWSXRayTags.PARENT_ID.getKey().equals(key)) {
+            entity.setParentId(value);
+        }
         else {
             setTagAny(key, value);
         }
