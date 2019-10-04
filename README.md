@@ -21,34 +21,6 @@ The code is not yet being deployed to Maven central (we're working on that!), so
 
 [1] If you don't already have Maven installed, you can use the `mvnw` command (or `mvnw.cmd` for Windows) instead which uses the [Maven wrapper plugin](https://github.com/takari/maven-wrapper) to download and start the correct version of Maven.
 
-## Known limitations
-
-This library does not currently provide a full implementation of the OpenTracing API: the X-Ray classes themselves 
-already provide some of the same features, and in other cases the APIs are incompatible. The following limitations 
-currently apply:
-
-#### References
-
-OpenTracing provides for arbitrary [references between spans](https://opentracing.io/specification/#references-between-spans), 
-including parent-child and follows-from relationships. In practice X-Ray only supports parent-child relationships, and
-each span can have at most one parent. Calls to add references of different types, or multiple parent-child relationships,
-will generally be ignored.
-
-#### Context injection / extraction
-
-This library does not currently implement [injection and extraction of SpanContext](https://opentracing.io/specification/#inject-a-spancontext-into-a-carrier):
-in most cases it is expected that this library will be used in AWS-hosted systems, and calls between AWS services using
-the official SDK will already handle passing trace IDs across.
-
-Support could be added in future if required.
-
-#### Logging
-
-OpenTracing provides methods to add [logs to the trace](https://opentracing.io/specification/#log-structured-data). 
-These methods will work as expected: structured data are stored in X-Ray metadata under a "log" namespace, but this
-approach isn't advised since the resulting JSON format is clunky. A better approach in AWS is to make use of 
-[CloudWatch](https://aws.amazon.com/cloudwatch/).
-
 ## AWS compatibility
 
 #### Integrating with AWS systems
@@ -106,6 +78,41 @@ behaviour of the underlying X-Ray trace `Entity` (NB some of these only work for
 | `user`                | sets the `user` value           | Y         | -            |
 | `origin`              | sets the `origin` value         | Y         | -            |
 | `parentId`            | sets the `parentId` value       | Y         | Y            |
+
+#### Context injection / extraction
+
+This library supports basic [injection and extraction of SpanContext](https://opentracing.io/specification/#inject-a-spancontext-into-a-carrier):
+
+- in most cases it is expected that this library will be used in AWS-hosted systems, and calls between AWS services
+  using the official SDK will already handle passing trace IDs across so no further work is required
+  
+- for non-AWS systems, the current `SpanContext` can be converted into e.g. a set of HTTP 
+  headers using `Tracer.inject` and sent over the wire; on the other side, `Tracer.extract` can be used to convert 
+  the headers back into a `SpanContext`
+  
+- for compatibility between AWS and non-AWS services, we store the trace context information in a single header `X-Amzn-Trace-Id` - see the 
+  [Amazon trace header documentation](https://docs.aws.amazon.com/xray/latest/devguide/xray-concepts.html#xray-concepts-tracingheader) 
+  for more details
+
+## Known limitations
+
+This library does not currently provide a full implementation of the OpenTracing API: the X-Ray classes themselves 
+already provide some of the same features, and in other cases the APIs are incompatible. The following limitations 
+currently apply:
+
+#### References
+
+OpenTracing provides for arbitrary [references between spans](https://opentracing.io/specification/#references-between-spans), 
+including parent-child and follows-from relationships. In practice X-Ray only supports parent-child relationships, and
+each span can have at most one parent. Calls to add references of different types, or multiple parent-child relationships,
+will generally be ignored.
+
+#### Logging
+
+OpenTracing provides methods to add [logs to the trace](https://opentracing.io/specification/#log-structured-data). 
+These methods will work as expected: structured data are stored in X-Ray metadata under a "log" namespace, but this
+approach isn't advised since the resulting JSON format is clunky. A better approach in AWS is to make use of 
+[CloudWatch](https://aws.amazon.com/cloudwatch/).
 
 ## License
 
