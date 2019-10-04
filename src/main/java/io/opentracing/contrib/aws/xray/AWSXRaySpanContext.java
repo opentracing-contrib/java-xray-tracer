@@ -6,12 +6,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * There's no real need to implement {@link SpanContext} separately in AWS
- * because the Amazon client libraries will automatically add the relevant
- * HTTP headers to all downstream service requests. This is mostly here for
- * completeness, and is not intended to be used.
+ * In AWS, the span context usually only needs to hold the trace header
+ * information (current trace ID, parent segment ID, sampling decision) such
+ * that this can be propagated to child processes.
  *
  * @author ashley.mercer@skylightipv.com
+ * @see io.opentracing.SpanContext
+ * @see com.amazonaws.xray.entities.TraceHeader
  */
 class AWSXRaySpanContext implements SpanContext {
 

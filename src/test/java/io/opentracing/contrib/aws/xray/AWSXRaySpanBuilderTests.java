@@ -5,12 +5,15 @@ import com.amazonaws.xray.AWSXRayRecorderBuilder;
 import com.amazonaws.xray.emitters.Emitter;
 import com.amazonaws.xray.entities.Entity;
 import com.amazonaws.xray.entities.Segment;
+import com.amazonaws.xray.entities.TraceHeader;
 import io.opentracing.Scope;
 import io.opentracing.Span;
+import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.Collections;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -47,6 +50,20 @@ class AWSXRaySpanBuilderTests extends AWSXRayTestParent {
     }
 
     @Test
+    @DisplayName("set trace header in baggage")
+    void setTraceHeaderInBaggage() {
+        final Scope activeScope = tracer
+                .buildSpan("test-trace-header")
+                .startActive(true);
+
+        final String activeTraceHeader = activeScope.span().getBaggageItem(TraceHeader.HEADER_KEY);
+        assertNotNull(activeTraceHeader);
+        assertTrue(activeTraceHeader.contains(((AWSXRaySpan) activeScope.span()).getEntity().getTraceId().toString()));
+
+        activeScope.close();
+    }
+
+    @Test
     @DisplayName("set implicit active span as parent")
     void setImplicitParentSpan() {
         final Scope parentScope = tracer
@@ -62,6 +79,13 @@ class AWSXRaySpanBuilderTests extends AWSXRayTestParent {
 
         assertFalse(parentEntity.getSubsegments().isEmpty());
         assertEquals(parentEntity, childEntity.getParent());
+        assertEquals(parentEntity.getTraceId(), childEntity.getParent().getTraceId());
+
+        // Check that trace header is correctly set in the child
+        final String childTraceHeader = childScope.span().getBaggageItem(TraceHeader.HEADER_KEY);
+        assertNotNull(childTraceHeader);
+        assertTrue(childTraceHeader.contains(parentEntity.getTraceId().toString()));
+        assertTrue(childTraceHeader.contains(parentEntity.getId()));
 
         childScope.close();
         parentScope.close();
@@ -96,8 +120,42 @@ class AWSXRaySpanBuilderTests extends AWSXRayTestParent {
         assertEquals(explicitParentEntity, childEntity.getParent());
         assertNotEquals(explicitParentEntity.getId(), childEntity.getId());
 
+        // Check that trace header is correctly set in the child
+        final String childTraceHeader = childScope.span().getBaggageItem(TraceHeader.HEADER_KEY);
+        assertNotNull(childTraceHeader);
+        assertTrue(childTraceHeader.contains(explicitParentEntity.getTraceId().toString()));
+        assertTrue(childTraceHeader.contains(explicitParentEntity.getId()));
+
         childScope.close();
         implicitParentScope.close();
+    }
+
+    @Test
+    @DisplayName("set explicit span as parent from remote server")
+    void setExplicitParentSpanFromRemote() {
+
+        // SpanContext can be passed to remote servers using inject() and
+        // extract(), so assume we read this in from e.g. HTTP headers
+        final SpanContext remoteContext = new AWSXRaySpanContext(Collections.singletonMap(
+                TraceHeader.HEADER_KEY,
+                traceHeader.toString()
+        ));
+
+        final Scope childScope =  tracer
+                .buildSpan("child-span")
+                .asChildOf(remoteContext)
+                .startActive(true);
+
+        final Entity childEntity  = ((AWSXRayScope) childScope).span().getEntity();
+
+        assertEquals(childEntity.getParentSegment().getTraceId(), traceHeader.getRootTraceId());
+        assertEquals(childEntity.getParentSegment().getId(), traceHeader.getParentId());
+
+        // Check that trace header is correctly set in the child
+        final String childTraceHeader = childScope.span().getBaggageItem(TraceHeader.HEADER_KEY);
+        assertNotNull(childTraceHeader);
+
+        childScope.close();
     }
 
     @Test
@@ -117,7 +175,14 @@ class AWSXRaySpanBuilderTests extends AWSXRayTestParent {
 
         assertTrue(parentEntity.getSubsegments().isEmpty());
         assertNull(childEntity.getParent());
-        assertNotEquals(parentEntity.getTraceId(), childEntity.getTraceId());
+        assertNotEquals(parentEntity.getParentSegment().getTraceId(), childEntity.getParentSegment().getTraceId());
+
+        // Check that trace header is correctly set in the child
+        final String childTraceHeader = childScope.span().getBaggageItem(TraceHeader.HEADER_KEY);
+        assertNotNull(childTraceHeader);
+        assertTrue(childTraceHeader.contains(childEntity.getParentSegment().getTraceId().toString()));
+        assertFalse(childTraceHeader.contains(parentEntity.getParentSegment().getTraceId().toString()));
+        assertFalse(childTraceHeader.contains(parentEntity.getId()));
 
         childScope.close();
         parentScope.close();
@@ -144,6 +209,12 @@ class AWSXRaySpanBuilderTests extends AWSXRayTestParent {
 
         assertFalse(parentEntity.getSubsegments().isEmpty());
         assertEquals(parentEntity, childEntity.getParent());
+
+        // Check that trace header is correctly set in the child
+        final String childTraceHeader = childScope.span().getBaggageItem(TraceHeader.HEADER_KEY);
+        assertNotNull(childTraceHeader);
+        assertTrue(childTraceHeader.contains(parentEntity.getTraceId().toString()));
+        assertTrue(childTraceHeader.contains(parentEntity.getId()));
 
         childScope.close();
     }

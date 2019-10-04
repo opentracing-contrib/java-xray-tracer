@@ -5,6 +5,7 @@ import com.amazonaws.xray.contexts.LambdaSegmentContext;
 import com.amazonaws.xray.entities.*;
 import io.opentracing.*;
 import io.opentracing.propagation.Format;
+import io.opentracing.propagation.TextMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,12 +54,26 @@ public class AWSXRayTracer implements Tracer {
 
     @Override
     public <C> void inject(SpanContext spanContext, Format<C> format, C carrier) {
-        throw new UnsupportedOperationException("SpanContext propagation is not currently supported");
+        if (format == Format.Builtin.TEXT_MAP || format == Format.Builtin.HTTP_HEADERS) {
+            final TextMap textMap = (TextMap) carrier;
+            spanContext.baggageItems().forEach(e -> textMap.put(e.getKey(), e.getValue()));
+        }
+        else {
+            throw new UnsupportedOperationException("Format " + format.toString() +  " is not currently supported");
+        }
     }
 
     @Override
     public <C> SpanContext extract(Format<C> format, C carrier) {
-        throw new UnsupportedOperationException("SpanContext propagation is not currently supported");
+        if (format == Format.Builtin.TEXT_MAP || format == Format.Builtin.HTTP_HEADERS) {
+            final TextMap textMap = (TextMap) carrier;
+            final Map<String, String> baggage = new HashMap<>();
+            for (Map.Entry<String, String> e : textMap) { baggage.put(e.getKey(), e.getValue()); }
+            return new AWSXRaySpanContext(baggage);
+        }
+        else {
+            throw new UnsupportedOperationException("Format " + format.toString() +  " is not currently supported");
+        }
     }
 
     /**
@@ -236,10 +251,29 @@ public class AWSXRayTracer implements Tracer {
 
             // 2. an explicit parent is set but it doesn't have an X-Ray Entity
             //    attached: we can present a FacadeSegment to X-Ray
-            //    TODO extract the real underlying trace and span IDs from explicitParentContext
             //
             else if (explicitParentContext != null) {
-                parentEntity = new FacadeSegment(xRayRecorder, null, null, null);
+
+                // If the parent context has a valid AWS trace ID in its baggage
+                // (e.g. it came from some remote upstream server) then extract
+                // the trace and parent segment IDs here
+                TraceHeader traceHeader = null;
+                for (Map.Entry<String, String> e : explicitParentContext.baggageItems()) {
+                    if (TraceHeader.HEADER_KEY.equals(e.getKey())) {
+                        traceHeader = TraceHeader.fromString(e.getValue());
+                    }
+                }
+                final TraceID traceId = null == traceHeader ? null : traceHeader.getRootTraceId();
+                final String parentId = null == traceHeader ? null : traceHeader.getParentId();
+                final TraceHeader.SampleDecision sampleDecision = traceHeader == null ? null : traceHeader.getSampled();
+
+                // NB the default FacadeSegment class throws exceptions but we want
+                // to allow subsegments to be added and removed (even though both
+                // of these are ultimately a no-op)
+                parentEntity = new FacadeSegment(xRayRecorder, traceId, parentId, sampleDecision) {
+                    @Override public void addSubsegment(Subsegment subsegment) {}
+                    @Override public void removeSubsegment(Subsegment subsegment) {}
+                };
                 parentBaggage = AWSXRayUtils.extract(explicitParentContext.baggageItems());
             }
 
@@ -253,7 +287,9 @@ public class AWSXRayTracer implements Tracer {
             }
 
             // 4. no explicit parent, and ignoreActiveSpan is not set so create an
-            //    implicit reference to the current trace entity
+            //    implicit reference to the current trace entity (if it exists:
+            //    if it's null we'll instead end up creating a top-level Segment
+            //    instead)
             //
             else {
                 parentEntity = originalTraceEntity;
@@ -276,6 +312,7 @@ public class AWSXRayTracer implements Tracer {
                     xRayRecorder.beginSegment(operationName) :
                     xRayRecorder.beginSubsegment(operationName);
 
+            // Set the original trace entity back on AWSXRayRecorder as soon as possible
             xRayRecorder.setTraceEntity(originalTraceEntity);
 
             // AWS X-Ray doesn't support the notion of "not-yet-started" segments
@@ -286,9 +323,19 @@ public class AWSXRayTracer implements Tracer {
             startTimestampEpochSeconds.compareAndSet(null, Instant.now().toEpochMilli() / 1000.0);
             childEntity.setStartTime(startTimestampEpochSeconds.get());
 
-            // Baggage items should be carried over from the parent Span's
-            // context (if it exists) to the child Span
-            final AWSXRaySpanContext newSpanContext = new AWSXRaySpanContext(parentBaggage);
+            // Baggage items should mostly be carried over from the parent Span's
+            // context (if it exists) to the child Span; however, the TraceHeader
+            // should be replaced with the new value for the child span
+            final TraceHeader traceHeader = new TraceHeader(
+                 childEntity.getParentSegment().getTraceId(),
+                 null == parentEntity ? null : parentEntity.getId(),
+                 childEntity.getParentSegment().isSampled() ? TraceHeader.SampleDecision.SAMPLED : TraceHeader.SampleDecision.NOT_SAMPLED
+            );
+
+            final Map<String, String> childBaggage = new HashMap<>(parentBaggage);
+            childBaggage.put(TraceHeader.HEADER_KEY, traceHeader.toString());
+
+            final AWSXRaySpanContext newSpanContext = new AWSXRaySpanContext(childBaggage);
 
             // Defer to AWSXRaySpan to set tag values since this will handle
             // converting to X-Ray's naming conventions and format
